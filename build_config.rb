@@ -10,6 +10,8 @@ MRuby::Build.new do |conf|
 
   enable_debug
 
+  # C compiler settings
+
   # Use mrbgems
   # conf.gem 'examples/mrbgems/ruby_extension_example'
   # conf.gem 'examples/mrbgems/c_extension_example' do |g|
@@ -24,15 +26,15 @@ MRuby::Build.new do |conf|
   # include the default GEMs
   conf.gembox 'default'
   # C compiler settings
-  # conf.cc do |cc|
+  conf.cc do |cc|
   #   cc.command = ENV['CC'] || 'gcc'
-  #   cc.flags = [ENV['CFLAGS'] || %w()]
+     cc.flags = [ENV['CFLAGS'] || %w(-g -fPIC -std=gnu99 -O3 -Wall -Werror-implicit-function-declaration -Wdeclaration-after-statement)]
   #   cc.include_paths = ["#{root}/include"]
-  #   cc.defines = %w(DISABLE_GEMS)
+     cc.defines = %w(DISABLE_GEMS MRB_ENABLE_DEBUG_HOOK)
   #   cc.option_include_path = '-I%s'
   #   cc.option_define = '-D%s'
   #   cc.compile_options = "%{flags} -MMD -o %{outfile} -c %{infile}"
-  # end
+  end
 
   # mrbc settings
   # conf.mrbc do |mrbc|
