@@ -16,15 +16,25 @@
  */
 MRB_BEGIN_DECL
 
-#define TYPED_FIXABLE(f,t) (((f) <= (t)MRB_INT_MAX) && ((f) >= (t)MRB_INT_MIN))
+#define TYPED_POSFIXABLE(f,t) ((f) <= (t)MRB_INT_MAX)
+#define TYPED_NEGFIXABLE(f,t) ((f) >= (t)MRB_INT_MIN)
+#define TYPED_FIXABLE(f,t) (TYPED_POSFIXABLE(f,t) && TYPED_NEGFIXABLE(f,t))
+#define POSFIXABLE(f) TYPED_POSFIXABLE(f,mrb_int)
+#define NEGFIXABLE(f) TYPED_NEGFIXABLE(f,mrb_int)
 #define FIXABLE(f) TYPED_FIXABLE(f,mrb_int)
+#ifndef MRB_WITHOUT_FLOAT
 #define FIXABLE_FLOAT(f) TYPED_FIXABLE(f,double)
+#endif
 
+#ifndef MRB_WITHOUT_FLOAT
 MRB_API mrb_value mrb_flo_to_fixnum(mrb_state *mrb, mrb_value val);
-MRB_API mrb_value mrb_fixnum_to_str(mrb_state *mrb, mrb_value x, int base);
+#endif
+MRB_API mrb_value mrb_fixnum_to_str(mrb_state *mrb, mrb_value x, mrb_int base);
 /* ArgumentError if format string doesn't match /%(\.[0-9]+)?[aAeEfFgG]/ */
+#ifndef MRB_WITHOUT_FLOAT
 MRB_API mrb_value mrb_float_to_str(mrb_state *mrb, mrb_value x, const char *fmt);
 MRB_API mrb_float mrb_to_flo(mrb_state *mrb, mrb_value x);
+#endif
 
 mrb_value mrb_fixnum_plus(mrb_state *mrb, mrb_value x, mrb_value y);
 mrb_value mrb_fixnum_minus(mrb_state *mrb, mrb_value x, mrb_value y);

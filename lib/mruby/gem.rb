@@ -63,10 +63,7 @@ module MRuby
           objfile(f.relative_path_from(@dir).to_s.pathmap("#{build_dir}/%X"))
         end
 
-        @generate_functions = !(@rbfiles.empty? && @objs.empty?)
-        @objs << objfile("#{build_dir}/gem_init") if @generate_functions
-
-        @test_rbfiles = Dir.glob("#{dir}/test/**/*.rb")
+        @test_rbfiles = Dir.glob("#{dir}/test/**/*.rb").sort
         @test_objs = Dir.glob("#{dir}/test/*.{c,cpp,cxx,cc,m,asm,s,S}").map do |f|
           objfile(f.relative_path_from(dir).to_s.pathmap("#{build_dir}/%X"))
         end
@@ -83,11 +80,14 @@ module MRuby
 
         instance_eval(&@initializer)
 
+        @generate_functions = !(@rbfiles.empty? && @objs.empty?)
+        @objs << objfile("#{build_dir}/gem_init") if @generate_functions
+
         if !name || !licenses || !authors
           fail "#{name || dir} required to set name, license(s) and author(s)"
         end
 
-        build.libmruby << @objs
+        build.libmruby_objs << @objs
 
         instance_eval(&@build_config_initializer) if @build_config_initializer
       end
@@ -176,6 +176,7 @@ module MRuby
             f.puts %Q[  mrb_load_irep(mrb, gem_mrblib_irep_#{funcname});]
             f.puts %Q[  if (mrb->exc) {]
             f.puts %Q[    mrb_print_error(mrb);]
+            f.puts %Q[    mrb_close(mrb);]
             f.puts %Q[    exit(EXIT_FAILURE);]
             f.puts %Q[  }]
           end
@@ -323,20 +324,22 @@ module MRuby
         @ary.empty?
       end
 
+      def default_gem_params dep
+        if dep[:default]; dep
+        elsif File.exist? "#{MRUBY_ROOT}/mrbgems/#{dep[:gem]}" # check core
+          { :gem => dep[:gem], :default => { :core => dep[:gem] } }
+        else # fallback to mgem-list
+          { :gem => dep[:gem], :default => { :mgem => dep[:gem] } }
+        end
+      end
+
       def generate_gem_table build
         gem_table = @ary.reduce({}) { |res,v| res[v.name] = v; res }
 
         default_gems = []
         each do |g|
           g.dependencies.each do |dep|
-            unless gem_table.key? dep[:gem]
-              if dep[:default]; default_gems << dep
-              elsif File.exist? "#{MRUBY_ROOT}/mrbgems/#{dep[:gem]}" # check core
-                default_gems << { :gem => dep[:gem], :default => { :core => dep[:gem] } }
-              else # fallback to mgem-list
-                default_gems << { :gem => dep[:gem], :default => { :mgem => dep[:gem] } }
-              end
-            end
+            default_gems << default_gem_params(dep) unless gem_table.key? dep[:gem]
           end
         end
 
@@ -348,11 +351,7 @@ module MRuby
           spec.setup
 
           spec.dependencies.each do |dep|
-            unless gem_table.key? dep[:gem]
-              if dep[:default]; default_gems << dep
-              else default_gems << { :gem => dep[:gem], :default => { :mgem => dep[:gem] } }
-              end
-            end
+            default_gems << default_gem_params(dep) unless gem_table.key? dep[:gem]
           end
           gem_table[spec.name] = spec
         end
@@ -455,5 +454,6 @@ module MRuby
     def new(&block); block.call(self); end
     def config=(obj); @config = obj; end
     def gem(gemdir, &block); @config.gem(gemdir, &block); end
+    def gembox(gemfile); @config.gembox(gemfile); end
   end # GemBox
 end # MRuby

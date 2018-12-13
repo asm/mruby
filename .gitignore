@@ -15,7 +15,9 @@
 .DS_Store
 .ccmalloc
 .svn
+.vscode
 /.git
+cscope.files
 cscope.out
 tags
 /src/y.tab.c
